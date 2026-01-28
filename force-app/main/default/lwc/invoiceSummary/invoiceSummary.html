@@ -1,0 +1,18 @@
+<template>
+    <lightning-card title="Invoice Summary" icon-name="standard:invoice">
+        <template if:true={hasData}>
+            <div class="slds-p-around_medium">
+                <p><b>Invoice Number:</b> {invoiceNumber}</p>
+                <p><b>Status:</b> {status}</p>
+                <p><b>Net Total:</b> {netTotal}</p>
+                <p><b>Gross Total:</b> {grossTotal}</p>
+            </div>
+        </template>
+
+        <template if:false={hasData}>
+            <div class="slds-p-around_medium">
+                <lightning-spinner alternative-text="Loading invoice data"></lightning-spinner>
+            </div>
+        </template>
+    </lightning-card>
+</template>
