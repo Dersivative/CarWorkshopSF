@@ -61,8 +61,6 @@ public with sharing class WorkOrderLineItemConverter {
         invoiceLine.Quantity__c = sourceLine.Quantity__c;
         invoiceLine.Unit_Price__c = sourceLine.Unit_Price__c;
         invoiceLine.Tax_Rate__c = sourceLine.Tax_Rate__c;
-        invoiceLine.Net_Line_Total__c = sourceLine.Net_Line_Total__c;
-        invoiceLine.Gross_Line_Total__c = sourceLine.Gross_Line_Total__c;
 
         return invoiceLine;
     }

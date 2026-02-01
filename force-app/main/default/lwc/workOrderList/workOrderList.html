@@ -1,0 +1,25 @@
+<template>
+    <lightning-card title="Work Orders" icon-name="standard:work_order">
+        <template if:true={isLoading}>
+            <div class="slds-p-around_medium">
+                <lightning-spinner alternative-text="Processing"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={hasError}>
+            <div class="slds-p-around_medium slds-text-color_error">
+                {errorMessage}
+            </div>
+        </template>
+
+        <template if:false={hasError}>
+            <lightning-datatable
+                key-field="Id"
+                data={workOrders}
+                columns={columns}
+                onrowaction={handleRowAction}
+                hide-checkbox-column>
+            </lightning-datatable>
+        </template>
+    </lightning-card>
+</template>

@@ -1,0 +1,10 @@
+<template>
+    <lightning-layout multiple-rows="true">
+        <lightning-layout-item size="12" class="slds-m-bottom_medium">
+            <c-work-order-list onworkorderselect={handleWorkOrderSelect}></c-work-order-list>
+        </lightning-layout-item>
+        <lightning-layout-item size="12">
+            <c-work-order-detail work-order-id={selectedWorkOrderId}></c-work-order-detail>
+        </lightning-layout-item>
+    </lightning-layout>
+</template>

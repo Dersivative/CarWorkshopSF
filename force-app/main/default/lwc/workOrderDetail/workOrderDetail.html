@@ -1,0 +1,84 @@
+<template>
+    <lightning-card title="Work Order Details" icon-name="standard:work_order">
+        <template if:false={hasWorkOrder}>
+            <div class="slds-p-around_medium">
+                Select a Work Order to view details.
+            </div>
+        </template>
+
+        <template if:true={hasError}>
+            <div class="slds-p-around_medium slds-text-color_error">
+                {errorMessage}
+            </div>
+        </template>
+
+        <template if:true={detail}>
+            <div class="slds-p-around_medium">
+                <div class="slds-text-heading_small slds-m-bottom_small">
+                    {detail.workOrderName}
+                </div>
+
+                <lightning-layout multiple-rows="true" class="slds-m-bottom_medium">
+                    <lightning-layout-item size="12" class="slds-text-title_bold slds-m-bottom_x-small">
+                        Visit
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-text value={detail.visitName}></lightning-formatted-text>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-number
+                            value={detail.odometerKm}
+                            format-style="decimal">
+                        </lightning-formatted-number>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-date-time
+                            value={detail.checkInAt}>
+                        </lightning-formatted-date-time>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-date-time
+                            value={detail.checkOutAt}>
+                        </lightning-formatted-date-time>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" class="slds-text-title_bold slds-m-top_medium slds-m-bottom_x-small">
+                        Vehicle
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-text value={detail.vehiclePlate}></lightning-formatted-text>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-text value={detail.vehicleMake}></lightning-formatted-text>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-text value={detail.vehicleModel}></lightning-formatted-text>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6">
+                        <lightning-formatted-number value={detail.vehicleYear}></lightning-formatted-number>
+                    </lightning-layout-item>
+                </lightning-layout>
+
+                <div class="slds-m-bottom_small">
+                    <lightning-button label="Add Line" variant="brand" onclick={handleAddLine}></lightning-button>
+                </div>
+
+                <lightning-datatable
+                    key-field="lineItemId"
+                    data={lineItems}
+                    columns={columns}
+                    onrowaction={handleRowAction}
+                    hide-checkbox-column>
+                </lightning-datatable>
+
+                <div class="slds-m-top_medium slds-text-align_right">
+                    <span class="slds-text-title_bold">Gross Total:</span>
+                    <lightning-formatted-number
+                        value={grossTotal}
+                        format-style="currency">
+                    </lightning-formatted-number>
+                </div>
+            </div>
+        </template>
+    </lightning-card>
+</template>

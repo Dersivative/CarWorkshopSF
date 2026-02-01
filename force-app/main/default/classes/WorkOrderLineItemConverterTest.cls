@@ -5,7 +5,7 @@ private class WorkOrderLineItemConverterTest {
 
     @IsTest
     static void convertCopiesValuesForSingleInvoice() {
-        TestData data = TestData.create(1);
+        TestData data = createTestData(1);
         Work_Order_Line_Item__c productLine = buildProductLine(data.workOrders[0].Id, data.product.Id);
         Work_Order_Line_Item__c serviceLine = buildServiceLine(data.workOrders[0].Id, data.service.Id);
 
@@ -29,14 +29,12 @@ private class WorkOrderLineItemConverterTest {
             System.assertEquals(source.Quantity__c, result.Quantity__c);
             System.assertEquals(source.Unit_Price__c, result.Unit_Price__c);
             System.assertEquals(source.Tax_Rate__c, result.Tax_Rate__c);
-            System.assertEquals(source.Net_Line_Total__c, result.Net_Line_Total__c);
-            System.assertEquals(source.Gross_Line_Total__c, result.Gross_Line_Total__c);
         }
     }
 
     @IsTest
     static void convertWithMappingDistributesInvoiceIds() {
-        TestData data = TestData.create(2);
+        TestData data = createTestData(2);
         Work_Order_Line_Item__c lineOne = buildProductLine(data.workOrders[0].Id, data.product.Id);
         Work_Order_Line_Item__c lineTwo = buildServiceLine(data.workOrders[1].Id, data.service.Id);
 
@@ -65,7 +63,7 @@ private class WorkOrderLineItemConverterTest {
 
     @IsTest
     static void convertValidatesInvoiceId() {
-        TestData data = TestData.create(1);
+        TestData data = createTestData(1);
         Work_Order_Line_Item__c productLine = buildProductLine(data.workOrders[0].Id, data.product.Id);
 
         Boolean exceptionThrown = false;
@@ -80,7 +78,7 @@ private class WorkOrderLineItemConverterTest {
 
     @IsTest
     static void convertWithMappingValidatesMissingEntries() {
-        TestData data = TestData.create(2);
+        TestData data = createTestData(2);
         Work_Order_Line_Item__c missingMappedLine = buildServiceLine(data.workOrders[1].Id, data.service.Id);
 
         Map<Id, Id> incompleteMapping = new Map<Id, Id>{
@@ -108,33 +106,33 @@ private class WorkOrderLineItemConverterTest {
         List<Invoice__c> invoices;
         Product__c product;
         Service__c service;
+    }
 
-        static TestData create(Integer workOrderCount) {
-            TestData data = new TestData();
-            data.account = createAccount();
-            data.vehicle = createVehicle(data.account.Id);
-            data.visit = createVisit(data.account.Id, data.vehicle.Id);
-            data.product = createProduct();
-            data.service = createService();
-            data.workOrders = new List<WorkOrder__c>();
-            data.invoices = new List<Invoice__c>();
+    private static TestData createTestData(Integer workOrderCount) {
+        TestData data = new TestData();
+        data.account = createAccount();
+        data.vehicle = createVehicle(data.account.Id);
+        data.visit = createVisit(data.account.Id, data.vehicle.Id);
+        data.product = createProduct();
+        data.service = createService();
+        data.workOrders = new List<WorkOrder__c>();
+        data.invoices = new List<Invoice__c>();
 
-            List<WorkOrder__c> workOrdersToInsert = new List<WorkOrder__c>();
-            for (Integer i = 0; i < workOrderCount; i++) {
-                workOrdersToInsert.add(new WorkOrder__c(Visit__c = data.visit.Id));
-            }
-            insert workOrdersToInsert;
-            data.workOrders.addAll(workOrdersToInsert);
-
-            List<Invoice__c> invoicesToInsert = new List<Invoice__c>();
-            for (WorkOrder__c workOrder : data.workOrders) {
-                invoicesToInsert.add(new Invoice__c(Work_Order__c = workOrder.Id));
-            }
-            insert invoicesToInsert;
-            data.invoices.addAll(invoicesToInsert);
-
-            return data;
+        List<WorkOrder__c> workOrdersToInsert = new List<WorkOrder__c>();
+        for (Integer i = 0; i < workOrderCount; i++) {
+            workOrdersToInsert.add(new WorkOrder__c(Visit__c = data.visit.Id));
         }
+        insert workOrdersToInsert;
+        data.workOrders.addAll(workOrdersToInsert);
+
+        List<Invoice__c> invoicesToInsert = new List<Invoice__c>();
+        for (WorkOrder__c workOrder : data.workOrders) {
+            invoicesToInsert.add(new Invoice__c(Work_Order__c = workOrder.Id));
+        }
+        insert invoicesToInsert;
+        data.invoices.addAll(invoicesToInsert);
+
+        return data;
     }
 
     private static Account createAccount() {
@@ -191,9 +189,7 @@ private class WorkOrderLineItemConverterTest {
             Product__c = productId,
             Quantity__c = 2,
             Unit_Price__c = 100,
-            Tax_Rate__c = 0.23,
-            Net_Line_Total__c = 200,
-            Gross_Line_Total__c = 246
+            Tax_Rate__c = 0.23
         );
     }
 
@@ -204,9 +200,7 @@ private class WorkOrderLineItemConverterTest {
             Service__c = serviceId,
             Quantity__c = 1,
             Unit_Price__c = 80,
-            Tax_Rate__c = 0.23,
-            Net_Line_Total__c = 80,
-            Gross_Line_Total__c = 98.4
+            Tax_Rate__c = 0.23
         );
     }
 }
