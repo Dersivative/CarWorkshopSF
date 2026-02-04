@@ -4,7 +4,7 @@
     <description>Registration plate</description>
     <externalId>false</externalId>
     <label>Plate</label>
-    <length>8</length>
+    <length>11</length>
     <required>true</required>
     <trackTrending>false</trackTrending>
     <type>Text</type>

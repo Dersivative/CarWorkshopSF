@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>All_Invoices_Service</fullName>
+    <columns>NAME</columns>
+    <columns>Work_Order__c</columns>
+    <columns>Invoice_Status__c</columns>
+    <columns>Invoice_Gross_Total__c</columns>
+    <columns>CREATEDBY_USER</columns>
+    <filterScope>Mine</filterScope>
+    <label>All Invoices - Service</label>
+</ListView>

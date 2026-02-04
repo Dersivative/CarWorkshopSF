@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="Invoices" icon-name="standard:invoice">
+        <div class="slds-p-around_medium">
+            <div class="slds-grid slds-wrap slds-gutters">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <lightning-combobox
+                        name="createdBy"
+                        label="Issued By"
+                        value={selectedCreatedById}
+                        options={createdByFilterOptions}
+                        onchange={handleCreatedByChange}
+                    ></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <lightning-combobox
+                        name="account"
+                        label="Client"
+                        value={selectedAccountId}
+                        options={accountFilterOptions}
+                        onchange={handleAccountChange}
+                    ></lightning-combobox>
+                </div>
+            </div>
+        </div>
+
+        <template if:true={hasError}>
+            <div class="slds-p-horizontal_medium slds-text-color_error">
+                {errorMessage}
+            </div>
+        </template>
+
+        <lightning-datatable
+            key-field="Id"
+            data={invoices}
+            columns={columns}
+            hide-checkbox-column
+            onrowaction={handleRowAction}
+        ></lightning-datatable>
+    </lightning-card>
+</template>

@@ -126,6 +126,7 @@ private class WorkOrderInvoiceControllerTest {
             Unit_Price__c = 100,
             Tax_Rate__c = 0
         );
+       
 
         insert new List<Work_Order_Line_Item__c>{ productLine, serviceLine };
 
