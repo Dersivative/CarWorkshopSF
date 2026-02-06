@@ -10,6 +10,7 @@ import updateInvoiceStatus from '@salesforce/apex/WorkOrderInvoiceController.upd
 const ACTION_APPROVE = 'approve';
 const ACTION_VOID = 'void';
 const ACTION_PAID = 'paid';
+const ACTION_VIEW = 'view';
 
 const COLUMNS = [
     {
@@ -29,6 +30,15 @@ const COLUMNS = [
     { label: 'Net Total', fieldName: 'Invoice_Net_Total__c', type: 'currency' },
     { label: 'Status', fieldName: 'Invoice_Status__c', type: 'text' },
     {
+        label: 'View',
+        type: 'button',
+        typeAttributes: {
+            label: 'View',
+            name: ACTION_VIEW,
+            variant: 'base'
+        }
+    },
+    {
         type: 'action',
         typeAttributes: { rowActions: { fieldName: 'availableActions' } }
     }
@@ -43,6 +53,8 @@ export default class InvoiceList extends LightningElement {
     accountOptions = [];
     selectedCreatedById = '';
     selectedAccountId = '';
+    isDetailOpen = false;
+    selectedInvoiceId;
 
     @wire(getInvoiceCreatedByOptions)
     wiredCreatedByOptions({ data, error }) {
@@ -127,6 +139,11 @@ export default class InvoiceList extends LightningElement {
     async handleRowAction(event) {
         const actionName = event.detail.action.name;
         const row = event.detail.row;
+        if (actionName === ACTION_VIEW) {
+            this.selectedInvoiceId = row.Id;
+            this.isDetailOpen = true;
+            return;
+        }
         const targetStatus = this.mapActionToStatus(actionName);
         if (!targetStatus) {
             return;
@@ -173,6 +190,15 @@ export default class InvoiceList extends LightningElement {
             return 'Paid';
         }
         return null;
+    }
+
+    handleCloseDetail() {
+        this.isDetailOpen = false;
+        this.selectedInvoiceId = null;
+    }
+
+    async handleDetailStatusChange() {
+        await refreshApex(this.wiredInvoicesResult);
     }
 
     get hasError() {

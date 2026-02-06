@@ -1,22 +1,23 @@
 <template>
-    <lightning-card title="Work Order Details" icon-name="standard:work_order">
-        <template if:false={hasWorkOrder}>
-            <div class="slds-p-around_medium">
-                Select a Work Order to view details.
-            </div>
-        </template>
+    <template if:true={hasError}>
+        <div class="slds-p-around_medium slds-text-color_error">{errorMessage}</div>
+    </template>
 
-        <template if:true={hasError}>
-            <div class="slds-p-around_medium slds-text-color_error">
-                {errorMessage}
-            </div>
-        </template>
+    <template if:false={hasWorkOrder}>
+        <div class="slds-p-around_medium">Select a Work Order to view details.</div>
+    </template>
 
-        <template if:true={detail}>
+    <template if:true={detail}>
+        <lightning-card title="Work Order Details" icon-name="standard:work_order">
             <div class="slds-p-around_medium">
                 <div class="slds-text-heading_small slds-m-bottom_small">
                     {detail.workOrderName}
                 </div>
+                <template if:true={detail.assignedEmployeeName}>
+                    <p class="slds-m-bottom_small">
+                        <b>Assigned Employee:</b> {detail.assignedEmployeeName}
+                    </p>
+                </template>
 
                 <lightning-layout multiple-rows="true" class="slds-m-bottom_medium">
                     <lightning-layout-item size="12" class="slds-text-title_bold slds-m-bottom_x-small">
@@ -32,14 +33,10 @@
                         </lightning-formatted-number>
                     </lightning-layout-item>
                     <lightning-layout-item size="6">
-                        <lightning-formatted-date-time
-                            value={detail.checkInAt}>
-                        </lightning-formatted-date-time>
+                        <lightning-formatted-date-time value={detail.checkInAt}></lightning-formatted-date-time>
                     </lightning-layout-item>
                     <lightning-layout-item size="6">
-                        <lightning-formatted-date-time
-                            value={detail.checkOutAt}>
-                        </lightning-formatted-date-time>
+                        <lightning-formatted-date-time value={detail.checkOutAt}></lightning-formatted-date-time>
                     </lightning-layout-item>
 
                     <lightning-layout-item size="12" class="slds-text-title_bold slds-m-top_medium slds-m-bottom_x-small">
@@ -59,8 +56,19 @@
                     </lightning-layout-item>
                 </lightning-layout>
 
-                <div class="slds-m-bottom_small">
-                    <lightning-button label="Add Line" variant="brand" onclick={handleAddLine}></lightning-button>
+                <div class="slds-m-bottom_small slds-grid slds-gutters">
+                    <div>
+                        <lightning-button label="Close" variant="neutral" onclick={handleClose}></lightning-button>
+                    </div>
+                    <div>
+                        <lightning-button label="Create Invoice" variant="brand" onclick={handleCreateInvoice}></lightning-button>
+                    </div>
+                    <div>
+                        <lightning-button label="Add Service" variant="brand" onclick={handleAddService}></lightning-button>
+                    </div>
+                    <div>
+                        <lightning-button label="Add Product" variant="brand" onclick={handleAddProduct}></lightning-button>
+                    </div>
                 </div>
 
                 <lightning-datatable
@@ -73,12 +81,167 @@
 
                 <div class="slds-m-top_medium slds-text-align_right">
                     <span class="slds-text-title_bold">Gross Total:</span>
-                    <lightning-formatted-number
-                        value={grossTotal}
-                        format-style="currency">
-                    </lightning-formatted-number>
+                    <lightning-formatted-number value={grossTotal} format-style="currency"></lightning-formatted-number>
                 </div>
             </div>
-        </template>
-    </lightning-card>
+        </lightning-card>
+    </template>
+
+    <template if:true={isAddServiceOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open slds-modal_medium">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Add Service</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCancelAddService}>
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template if:true={isAddServiceListStep}>
+                        <div class="slds-m-bottom_small slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-input
+                                    type="search"
+                                    label="Filter by Name"
+                                    placeholder="Name..."
+                                    value={serviceFilterName}
+                                    onchange={handleServiceFilterNameChange}>
+                                </lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-input
+                                    type="search"
+                                    label="Filter by Description"
+                                    placeholder="Description..."
+                                    value={serviceFilterDescription}
+                                    onchange={handleServiceFilterDescriptionChange}>
+                                </lightning-input>
+                            </div>
+                        </div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={filteredServiceCatalog}
+                            columns={serviceCatalogColumns}
+                            onrowaction={handleServiceRowAction}
+                            hide-checkbox-column>
+                        </lightning-datatable>
+                    </template>
+                    <template if:true={isAddServiceDetailStep}>
+                        <template if:true={addServiceError}>
+                            <div class="slds-text-color_error slds-m-bottom_small">{addServiceError}</div>
+                        </template>
+                        <template if:true={selectedServiceItemForAdd}>
+                            <div class="slds-m-bottom_medium">
+                                <p class="slds-text-heading_small slds-m-bottom_x-small">{selectedServiceItemForAdd.Name}</p>
+                                <p class="slds-m-bottom_x-small"><b>Description:</b> {selectedServiceItemForAdd.Description}</p>
+                                <p class="slds-m-bottom_x-small"><b>Net Price:</b> <lightning-formatted-number value={selectedServiceItemForAdd.NetPrice} format-style="currency"></lightning-formatted-number></p>
+                                <p class="slds-m-bottom_x-small"><b>Tax Rate:</b> <lightning-formatted-number value={selectedServiceItemForAdd.TaxRate} format-style="percent"></lightning-formatted-number></p>
+                                <p class="slds-m-bottom_x-small"><b>Gross Price:</b> <lightning-formatted-number value={selectedServiceItemForAdd.GrossPrice} format-style="currency"></lightning-formatted-number></p>
+                            </div>
+                            <div class="slds-m-bottom_medium">
+                                <lightning-input
+                                    type="number"
+                                    label="Quantity (hours)"
+                                    value={quantityForAdd}
+                                    min="0"
+                                    step="0.1"
+                                    onchange={handleQuantityChange}>
+                                </lightning-input>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <template if:true={isAddServiceListStep}>
+                        <lightning-button label="Cancel" onclick={handleCancelAddService}></lightning-button>
+                    </template>
+                    <template if:true={isAddServiceDetailStep}>
+                        <lightning-button label="Back" onclick={handleBackToServiceList}></lightning-button>
+                        <lightning-button label="Add" variant="brand" onclick={handleConfirmAddService}></lightning-button>
+                    </template>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={isAddProductOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open slds-modal_medium">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Add Product</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCancelAddProduct}>
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template if:true={isAddProductListStep}>
+                        <div class="slds-m-bottom_small slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-input
+                                    type="search"
+                                    label="Filter by Name"
+                                    placeholder="Name..."
+                                    value={productFilterName}
+                                    onchange={handleProductFilterNameChange}>
+                                </lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-input
+                                    type="search"
+                                    label="Filter by Description"
+                                    placeholder="Description..."
+                                    value={productFilterDescription}
+                                    onchange={handleProductFilterDescriptionChange}>
+                                </lightning-input>
+                            </div>
+                        </div>
+                        <lightning-datatable
+                            key-field="Id"
+                            data={filteredProductCatalog}
+                            columns={productCatalogColumns}
+                            onrowaction={handleProductRowAction}
+                            hide-checkbox-column>
+                        </lightning-datatable>
+                    </template>
+                    <template if:true={isAddProductDetailStep}>
+                        <template if:true={addProductError}>
+                            <div class="slds-text-color_error slds-m-bottom_small">{addProductError}</div>
+                        </template>
+                        <template if:true={selectedProductItemForAdd}>
+                            <div class="slds-m-bottom_medium">
+                                <p class="slds-text-heading_small slds-m-bottom_x-small">{selectedProductItemForAdd.Name}</p>
+                                <p class="slds-m-bottom_x-small"><b>Description:</b> {selectedProductItemForAdd.Description}</p>
+                                <p class="slds-m-bottom_x-small"><b>Net Price:</b> <lightning-formatted-number value={selectedProductItemForAdd.NetPrice} format-style="currency"></lightning-formatted-number></p>
+                                <p class="slds-m-bottom_x-small"><b>Tax Rate:</b> <lightning-formatted-number value={selectedProductItemForAdd.TaxRate} format-style="percent"></lightning-formatted-number></p>
+                                <p class="slds-m-bottom_x-small"><b>Gross Price:</b> <lightning-formatted-number value={selectedProductItemForAdd.GrossPrice} format-style="currency"></lightning-formatted-number></p>
+                            </div>
+                            <div class="slds-m-bottom_medium">
+                                <lightning-input
+                                    type="number"
+                                    label="Quantity (units)"
+                                    value={quantityForAdd}
+                                    min="0"
+                                    step="1"
+                                    onchange={handleQuantityChange}>
+                                </lightning-input>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <template if:true={isAddProductListStep}>
+                        <lightning-button label="Cancel" onclick={handleCancelAddProduct}></lightning-button>
+                    </template>
+                    <template if:true={isAddProductDetailStep}>
+                        <lightning-button label="Back" onclick={handleBackToProductList}></lightning-button>
+                        <lightning-button label="Add" variant="brand" onclick={handleConfirmAddProduct}></lightning-button>
+                    </template>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>

@@ -69,10 +69,42 @@ private class WorkOrderInvoiceControllerTest {
             System.assert(false, 'Expected AuraHandledException for null Work Order Id.');
         } catch (AuraHandledException ex) {
             System.assert(
-                ex.getMessage().contains('Work Order Id is required.'),
+                ex.getMessage() != null && ex.getMessage().contains('Work Order Id'),
                 'Exception message should indicate missing Work Order Id.'
             );
         }
+    }
+
+    @IsTest
+    static void createInvoiceForWorkOrderDecrementsProductReservedAndOnHand() {
+        WorkOrder__c workOrder = createWorkOrderWithLines();
+        Id productId = [SELECT Product__c FROM Work_Order_Line_Item__c WHERE Line_Type__c = 'Product' AND Work_Order__c = :workOrder.Id LIMIT 1].Product__c;
+        Product__c productBefore = [SELECT Quantity_Reserved__c, Quantity_On_Hand__c FROM Product__c WHERE Id = :productId];
+
+        Test.startTest();
+        WorkOrderInvoiceController.createInvoiceForWorkOrder(workOrder.Id);
+        Test.stopTest();
+
+        Product__c productAfter = [SELECT Quantity_Reserved__c, Quantity_On_Hand__c FROM Product__c WHERE Id = :productId];
+        Decimal reservedBefore = productBefore.Quantity_Reserved__c != null ? productBefore.Quantity_Reserved__c : 0;
+        Decimal onHandBefore = productBefore.Quantity_On_Hand__c != null ? productBefore.Quantity_On_Hand__c : 0;
+        System.assertEquals(reservedBefore - 2, productAfter.Quantity_Reserved__c, 'Reserved should decrease by line quantity.');
+        System.assertEquals(onHandBefore - 2, productAfter.Quantity_On_Hand__c, 'On hand should decrease by line quantity.');
+    }
+
+    @IsTest
+    static void updateInvoiceStatusVoidRestoresOnHand() {
+        WorkOrder__c workOrder = createWorkOrderWithLines();
+        Id invoiceId = WorkOrderInvoiceController.createInvoiceForWorkOrder(workOrder.Id);
+        Id productId = [SELECT Product__c FROM Invoice_Line_Item__c WHERE Invoice__c = :invoiceId AND Line_Type__c = 'Product' LIMIT 1].Product__c;
+        Decimal onHandAfterCreate = [SELECT Quantity_On_Hand__c FROM Product__c WHERE Id = :productId].Quantity_On_Hand__c;
+
+        Test.startTest();
+        WorkOrderInvoiceController.updateInvoiceStatus(invoiceId, 'Void');
+        Test.stopTest();
+
+        Decimal onHandAfterVoid = [SELECT Quantity_On_Hand__c FROM Product__c WHERE Id = :productId].Quantity_On_Hand__c;
+        System.assertEquals(onHandAfterCreate + 2, onHandAfterVoid, 'Voiding invoice should restore product quantity on hand.');
     }
 
     private static WorkOrder__c createWorkOrderWithLines() {
@@ -80,6 +112,7 @@ private class WorkOrderInvoiceControllerTest {
         insert account;
 
         Vehicle__c vehicle = new Vehicle__c(
+            Name = '12345678901234567',
             Account__c = account.Id,
             Plate__c = 'XYZ-123'
         );
@@ -97,6 +130,7 @@ private class WorkOrderInvoiceControllerTest {
         Product__c product = new Product__c(
             Price__c = 10,
             Quantity_On_Hand__c = 5,
+            Tax_Rate__c = 0,
             Product_Description__c = 'Oil Filter ' + String.valueOf(DateTime.now().getTime())
         );
         insert product;

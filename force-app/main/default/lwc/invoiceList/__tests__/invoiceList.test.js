@@ -130,6 +130,10 @@ describe('c-invoice-list', () => {
         expect(comboBoxes).toHaveLength(2);
         expect(comboBoxes[0].options[0].label).toBe('All');
         expect(comboBoxes[1].options[0].label).toBe('All');
+
+        const viewColumn = dataTable.columns.find((column) => column.type === 'button');
+        expect(viewColumn).toBeDefined();
+        expect(viewColumn.label).toBe('View');
     });
 
     it('shows an error message when invoice wire fails', async () => {
@@ -173,5 +177,27 @@ describe('c-invoice-list', () => {
             newStatus: 'Issued'
         });
         expect(refreshApex).toHaveBeenCalled();
+    });
+
+    it('opens invoice detail modal on view action', async () => {
+        const element = createElement('c-invoice-list', { is: InvoiceList });
+        document.body.appendChild(element);
+
+        getInvoicesAdapter.emit(INVOICES);
+        await flushPromises();
+
+        const dataTable = element.shadowRoot.querySelector('lightning-datatable');
+        dataTable.dispatchEvent(
+            new CustomEvent('rowaction', {
+                detail: {
+                    action: { name: 'view' },
+                    row: dataTable.data[0]
+                }
+            })
+        );
+
+        await flushPromises();
+        const detail = element.shadowRoot.querySelector('c-invoice-detail');
+        expect(detail).not.toBeNull();
     });
 });

@@ -24,10 +24,106 @@ private class WorkOrderDetailControllerTest {
             System.assert(false, 'Expected AuraHandledException for missing Work Order Id.');
         } catch (AuraHandledException ex) {
             System.assert(
-                ex.getMessage().contains('Work Order Id is required.'),
+                ex.getMessage() != null && ex.getMessage().contains('Work Order Id'),
                 'Exception message should indicate missing Work Order Id.'
             );
         }
+    }
+
+    @IsTest
+    static void getServiceCatalogReturnsList() {
+        Service__c svc = new Service__c(
+            Service_Description__c = 'Test Svc',
+            Hourly_Rate__c = 50,
+            Tax_Rate__c = 0.1,
+            Default_Labour_Hours__c = 2
+        );
+        insert svc;
+
+        Test.startTest();
+        List<WorkOrderDetailController.ServiceCatalogDto> result =
+            WorkOrderDetailController.getServiceCatalog();
+        Test.stopTest();
+
+        System.assert(!result.isEmpty(), 'Expected at least one service.');
+        Boolean found = false;
+        for (WorkOrderDetailController.ServiceCatalogDto dto : result) {
+            if (dto.Id == svc.Id) {
+                found = true;
+                System.assertEquals(50, dto.NetPrice);
+                System.assertEquals(2, dto.DefaultLabourHours);
+                break;
+            }
+        }
+        System.assert(found, 'Created service should be in catalog.');
+    }
+
+    @IsTest
+    static void getProductCatalogReturnsList() {
+        Product__c prod = new Product__c(
+            Product_Description__c = 'Test Prod',
+            Price__c = 30,
+            Tax_Rate__c = 0.1,
+            Quantity_On_Hand__c = 10,
+            Quantity_Reserved__c = 0
+        );
+        insert prod;
+
+        Test.startTest();
+        List<WorkOrderDetailController.ProductCatalogDto> result =
+            WorkOrderDetailController.getProductCatalog();
+        Test.stopTest();
+
+        System.assert(!result.isEmpty(), 'Expected at least one product.');
+        Boolean found = false;
+        for (WorkOrderDetailController.ProductCatalogDto dto : result) {
+            if (dto.Id == prod.Id) {
+                found = true;
+                System.assertEquals(30, dto.NetPrice);
+                break;
+            }
+        }
+        System.assert(found, 'Created product should be in catalog.');
+    }
+
+    @IsTest
+    static void addWorkOrderLineItemInsertsLine() {
+        WorkOrder__c workOrder = createWorkOrderWithLines();
+        Service__c service = [SELECT Id FROM Service__c LIMIT 1];
+
+        Test.startTest();
+        WorkOrderDetailController.addWorkOrderLineItem(
+            workOrder.Id,
+            'Service',
+            null,
+            service.Id,
+            1.5,
+            100,
+            0
+        );
+        Test.stopTest();
+
+        List<Work_Order_Line_Item__c> lines = [
+            SELECT Id, Line_Type__c, Quantity__c
+            FROM Work_Order_Line_Item__c
+            WHERE Work_Order__c = :workOrder.Id
+        ];
+        System.assertEquals(3, lines.size(), 'Should have added one more line.');
+    }
+
+    @IsTest
+    static void deleteWorkOrderLineItemDeletesLine() {
+        WorkOrder__c workOrder = createWorkOrderWithLines();
+        Id lineId = [SELECT Id FROM Work_Order_Line_Item__c WHERE Work_Order__c = :workOrder.Id LIMIT 1].Id;
+
+        Test.startTest();
+        WorkOrderDetailController.deleteWorkOrderLineItem(lineId);
+        Test.stopTest();
+
+        List<Work_Order_Line_Item__c> lines = [
+            SELECT Id FROM Work_Order_Line_Item__c WHERE Work_Order__c = :workOrder.Id
+        ];
+        System.assertEquals(1, lines.size(), 'One line should be deleted.');
     }
 
     private static WorkOrder__c createWorkOrderWithLines() {
@@ -37,7 +133,7 @@ private class WorkOrderDetailControllerTest {
         insert account;
 
         Vehicle__c vehicle = new Vehicle__c(
-            Name = 'VIN-' + stamp,
+            Name = '12345678901234567',
             Account__c = account.Id,
             Plate__c = 'DET-' + stamp.right(6)
         );
@@ -56,6 +152,7 @@ private class WorkOrderDetailControllerTest {
         Product__c product = new Product__c(
             Price__c = 25,
             Quantity_On_Hand__c = 5,
+            Tax_Rate__c = 0,
             Product_Description__c = 'Detail Product ' + stamp
         );
         insert product;

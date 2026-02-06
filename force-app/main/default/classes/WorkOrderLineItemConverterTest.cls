@@ -143,7 +143,7 @@ private class WorkOrderLineItemConverterTest {
 
     private static Vehicle__c createVehicle(Id accountId) {
         Vehicle__c vehicle = new Vehicle__c(
-            Name = 'VIN-' + String.valueOf(DateTime.now().getTime()),
+            Name = '12345678901234567',
             Account__c = accountId,
             Plate__c = 'PL' + String.valueOf(Math.mod(DateTime.now().getTime(), 1000000))
         );
@@ -165,6 +165,7 @@ private class WorkOrderLineItemConverterTest {
         Product__c product = new Product__c(
             Price__c = 100,
             Quantity_On_Hand__c = 50,
+            Tax_Rate__c = 0.23,
             Product_Description__c = 'Product ' + String.valueOf(DateTime.now().getTime())
         );
         insert product;

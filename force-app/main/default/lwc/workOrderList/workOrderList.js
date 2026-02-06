@@ -22,6 +22,7 @@ const COLUMNS = [
         type: 'url',
         typeAttributes: { label: { fieldName: 'visitName' }, target: '_blank' }
     },
+    { label: 'Assigned Employee', fieldName: 'assignedEmployeeName', type: 'text' },
     {
         label: 'Created',
         fieldName: 'CreatedDate',
@@ -37,6 +38,8 @@ export default class WorkOrderList extends LightningElement {
     error;
     isLoading = false;
     wiredResult;
+    isDetailOpen = false;
+    selectedWorkOrderId;
 
     @wire(getWorkOrders)
     wiredWorkOrders(result) {
@@ -49,7 +52,8 @@ export default class WorkOrderList extends LightningElement {
                 ...workOrder,
                 workOrderUrl: '/' + workOrder.Id,
                 visitUrl: workOrder.Visit__c ? '/' + workOrder.Visit__c : null,
-                visitName: workOrder.Visit__r?.Name ?? '—'
+                visitName: workOrder.Visit__r?.Name ?? '—',
+                assignedEmployeeName: workOrder.Assigned_Employee__r?.Name ?? '—'
             }));
         } else if (error) {
             this.workOrders = [];
@@ -62,13 +66,8 @@ export default class WorkOrderList extends LightningElement {
         const row = event.detail.row;
 
         if (actionName === 'view_details') {
-            this.dispatchEvent(
-                new CustomEvent('workorderselect', {
-                    detail: { workOrderId: row.Id },
-                    bubbles: true,
-                    composed: true
-                })
-            );
+            this.selectedWorkOrderId = row.Id;
+            this.isDetailOpen = true;
             return;
         }
 
@@ -96,6 +95,15 @@ export default class WorkOrderList extends LightningElement {
                 this.isLoading = false;
             }
         }
+    }
+
+    handleCloseDetail() {
+        this.isDetailOpen = false;
+        this.selectedWorkOrderId = null;
+    }
+
+    async handleDetailStatusChange() {
+        await refreshApex(this.wiredResult);
     }
 
     get hasError() {

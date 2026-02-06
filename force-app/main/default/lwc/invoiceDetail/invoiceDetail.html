@@ -1,0 +1,89 @@
+<template>
+    <template if:true={hasError}>
+        <div class="slds-text-color_error slds-p-around_medium">{errorMessage}</div>
+    </template>
+
+    <template if:true={hasData}>
+        <lightning-card title="Invoice Details" icon-name="standard:invoice">
+            <div class="slds-p-around_x-large">
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <p><b>Invoice:</b> {invoiceName}</p>
+                        <p><b>Created By:</b> {createdByName}</p>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <p>
+                            <b>Created On:</b>
+                            <lightning-formatted-date-time value={createdDate}></lightning-formatted-date-time>
+                        </p>
+                        <p><b>Client:</b> {clientName}</p>
+                    </div>
+                </div>
+
+                <div class="slds-m-top_small">
+                    <lightning-badge label={status}></lightning-badge>
+                </div>
+
+                <div class="slds-m-top_medium slds-grid slds-gutters">
+                    <div>
+                        <lightning-button
+                            label="Approve"
+                            variant="brand"
+                            onclick={handleApprove}
+                            disabled={isApproveDisabled}
+                        ></lightning-button>
+                    </div>
+                    <div>
+                        <lightning-button
+                            label="Paid"
+                            variant="brand"
+                            onclick={handlePaid}
+                            disabled={isPaidDisabled}
+                        ></lightning-button>
+                    </div>
+                    <div>
+                        <lightning-button
+                            label="Void"
+                            variant="destructive"
+                            onclick={handleVoid}
+                            disabled={isVoidDisabled}
+                        ></lightning-button>
+                    </div>
+                    <div>
+                        <lightning-button
+                            label="Close"
+                            variant="neutral"
+                            onclick={handleClose}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+
+            <lightning-datatable
+                key-field="lineId"
+                data={lines}
+                columns={columns}
+                hide-checkbox-column
+            ></lightning-datatable>
+
+            <div class="slds-p-around_medium slds-text-align_right">
+                <p>
+                    <b>Total Net:</b>
+                    <lightning-formatted-number
+                        value={totalNet}
+                        format-style="currency"
+                        currency-code="USD"
+                    ></lightning-formatted-number>
+                </p>
+                <p>
+                    <b>Total Gross:</b>
+                    <lightning-formatted-number
+                        value={totalGross}
+                        format-style="currency"
+                        currency-code="USD"
+                    ></lightning-formatted-number>
+                </p>
+            </div>
+        </lightning-card>
+    </template>
+</template>
