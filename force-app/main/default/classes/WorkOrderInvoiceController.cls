@@ -33,7 +33,7 @@ public with sharing class WorkOrderInvoiceController {
         @AuraEnabled public String status;
         @AuraEnabled public List<InvoiceLineDto> lines;
     }
-
+    // lista work orders do wyświetlenia w komponencie
     @AuraEnabled(cacheable=true)
     public static List<WorkOrder__c> getWorkOrders() {
         return [
@@ -44,6 +44,7 @@ public with sharing class WorkOrderInvoiceController {
         ];
     }
 
+    // lista faktur do wyświetlenia w komponencie
     @AuraEnabled(cacheable=true)
     public static List<Invoice__c> getInvoices(Id createdById, Id accountId) {
         List<String> whereClauses = new List<String>();
@@ -70,12 +71,14 @@ public with sharing class WorkOrderInvoiceController {
         return Database.query(soql);
     }
 
+    // dto zeby pokazac wybrane dane faktury w komponencie
     @AuraEnabled(cacheable=true)
     public static InvoiceDetailDto getInvoiceDetail(Id invoiceId) {
         if (invoiceId == null) {
             throw new AuraHandledException('Invoice Id is required.');
         }
 
+        // pobieram fakturę z bazy danych
         Invoice__c invoice = [
             SELECT Id,
                 Name,
@@ -89,6 +92,7 @@ public with sharing class WorkOrderInvoiceController {
             WHERE Id = :invoiceId
         ];
 
+        // i jej linie
         List<Invoice_Line_Item__c> lineItems = [
             SELECT Id,
                 Name,
@@ -109,19 +113,25 @@ public with sharing class WorkOrderInvoiceController {
             ORDER BY Name
         ];
 
+        // mapwanie na dto
         InvoiceDetailDto detail = new InvoiceDetailDto();
         detail.invoiceId = invoice.Id;
         detail.invoiceName = invoice.Name;
         detail.createdDate = invoice.CreatedDate;
         detail.createdByName = invoice.CreatedBy != null ? invoice.CreatedBy.Name : null;
-        detail.clientName = invoice.Work_Order__r != null &&
-            invoice.Work_Order__r.Visit__r != null &&
-            invoice.Work_Order__r.Visit__r.Account__r != null
-            ? invoice.Work_Order__r.Visit__r.Account__r.Name
-            : null;
+        detail.clientName = null;
+        if (invoice.Work_Order__r != null) { // Nie powinno sie zdarzyc, bo pole Work_Order__r jest required
+            if (invoice.Work_Order__r.Visit__r != null) { // jw.
+                if (invoice.Work_Order__r.Visit__r.Account__r != null) { // jw.
+                    detail.clientName = invoice.Work_Order__r.Visit__r.Account__r.Name;
+                }
+            }
+        }
         detail.totalNet = invoice.Invoice_Net_Total__c;
         detail.totalGross = invoice.Invoice_Gross_Total__c;
         detail.status = invoice.Invoice_Status__c;
+
+        // lista linii faktury
         detail.lines = new List<InvoiceLineDto>();
 
         for (Invoice_Line_Item__c lineItem : lineItems) {
@@ -133,7 +143,7 @@ public with sharing class WorkOrderInvoiceController {
             lineDto.netTotal = lineItem.Net_Line_Total__c;
             lineDto.grossTotal = lineItem.Gross_Line_Total__c;
             lineDto.taxRate = lineItem.Tax_Rate__c;
-            if (lineItem.Product__r != null) {
+            if (lineItem.Product__r != null) { // czy produkt czy usługa
                 lineDto.productOrServiceId = lineItem.Product__c;
                 lineDto.name = lineItem.Product__r.Name;
                 lineDto.description = lineItem.Product__r.Product_Description__c;
@@ -141,16 +151,14 @@ public with sharing class WorkOrderInvoiceController {
                 lineDto.productOrServiceId = lineItem.Service__c;
                 lineDto.name = lineItem.Service__r.Name;
                 lineDto.description = lineItem.Service__r.Service_Description__c;
-            } else {
-                lineDto.name = lineItem.Name;
-            }
+            } 
             detail.lines.add(lineDto);
         }
 
         return detail;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=true) // do filtrowania po created by
     public static List<FilterOption> getInvoiceCreatedByOptions() {
         List<FilterOption> options = new List<FilterOption>();
         for (AggregateResult result : [
@@ -168,7 +176,7 @@ public with sharing class WorkOrderInvoiceController {
         return options;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=true) // do filtrowania po account
     public static List<FilterOption> getInvoiceAccountOptions() {
         List<FilterOption> options = new List<FilterOption>();
         for (AggregateResult result : [
@@ -188,8 +196,7 @@ public with sharing class WorkOrderInvoiceController {
         return options;
     }
 
-    // If conversion fails with a validation error about Assigned Employee, ensure Work_Order__r.Assigned_Employee__c is set before creating an invoice (e.g. via a validation rule in the org).
-    @AuraEnabled
+    @AuraEnabled // tworzenie faktury z work order
     public static Id createInvoiceForWorkOrder(Id workOrderId) {
         if (workOrderId == null) {
             throw new AuraHandledException('Work Order Id is required.');
@@ -216,7 +223,7 @@ public with sharing class WorkOrderInvoiceController {
         );
         insert invoice;
 
-        if (!workOrderLineItems.isEmpty()) {
+        if (!workOrderLineItems.isEmpty()) { // konwersja linii work order na linie faktury
             List<Invoice_Line_Item__c> invoiceLineItems = WorkOrderLineItemConverter.convert(
                 workOrderLineItems,
                 invoice.Id
@@ -224,8 +231,8 @@ public with sharing class WorkOrderInvoiceController {
             insert invoiceLineItems;
         }
 
-        Map<Id, Decimal> productIdToQty = new Map<Id, Decimal>();
-        for (Work_Order_Line_Item__c line : workOrderLineItems) {
+        Map<Id, Decimal> productIdToQty = new Map<Id, Decimal>(); // mapa produktu na ilość
+        for (Work_Order_Line_Item__c line : workOrderLineItems) { // agregacja ilości po produkcie
             if (line.Line_Type__c != 'Product' || line.Product__c == null) continue;
             Decimal qty = line.Quantity__c != null ? line.Quantity__c : 0;
             productIdToQty.put(
@@ -254,7 +261,7 @@ public with sharing class WorkOrderInvoiceController {
     }
 
     @AuraEnabled
-    public static void updateInvoiceStatus(Id invoiceId, String newStatus) {
+    public static void updateInvoiceStatus(Id invoiceId, String newStatus) { // zmiana statusu faktury
         if (invoiceId == null) {
             throw new AuraHandledException('Invoice Id is required.');
         }
@@ -270,11 +277,11 @@ public with sharing class WorkOrderInvoiceController {
         ];
 
         String currentStatus = invoice.Invoice_Status__c;
-        if (currentStatus == null) {
+        if (currentStatus == null) { // nie powinno sie zdarzyc, bo pole Invoice_Status__c jest required
             throw new AuraHandledException('Invoice status is not set.');
         }
 
-        if (!isValidStatusTransition(currentStatus, newStatus)) {
+        if (!isValidStatusTransition(currentStatus, newStatus)) { // sprawdzenie czy przejście statusów jest poprawne
             throw new AuraHandledException(
                 'Invalid status transition from ' + currentStatus + ' to ' + newStatus + '.'
             );
@@ -283,7 +290,7 @@ public with sharing class WorkOrderInvoiceController {
         invoice.Invoice_Status__c = newStatus;
         update invoice;
 
-        if (newStatus == 'Void') {
+        if (newStatus == 'Void') { // jeśli faktura jest anulowana, to trzeba zwrócić ilość produktów na stanie
             Map<Id, Decimal> productIdToQty = new Map<Id, Decimal>();
             for (AggregateResult ar : [
                 SELECT Product__c pId, SUM(Quantity__c) totalQty
@@ -315,7 +322,7 @@ public with sharing class WorkOrderInvoiceController {
         }
     }
 
-    private static Boolean isValidStatusTransition(String currentStatus, String newStatus) {
+    private static Boolean isValidStatusTransition(String currentStatus, String newStatus) { // mapa przejść statusów faktury
         if (currentStatus == 'Draft') {
             return newStatus == 'Issued' || newStatus == 'Void';
         }

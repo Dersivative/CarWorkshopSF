@@ -1,5 +1,5 @@
 public with sharing class WorkOrderLineItemConverter {
-    // Converts Work Order line items into Invoice line items.
+    // Konwertuje Work Order line items na Invoice line items.
     public static List<Invoice_Line_Item__c> convert(
         List<Work_Order_Line_Item__c> workOrderLineItems,
         Id invoiceId
@@ -52,7 +52,7 @@ public with sharing class WorkOrderLineItemConverter {
         if (sourceLine == null) {
             throw new IllegalArgumentException('Source Work Order line item cannot be null.');
         }
-
+        // zwykłe przemapowanie pol z Work Order line item na Invoice line item
         Invoice_Line_Item__c invoiceLine = new Invoice_Line_Item__c();
         invoiceLine.Invoice__c = invoiceId;
         invoiceLine.Line_Type__c = sourceLine.Line_Type__c;
